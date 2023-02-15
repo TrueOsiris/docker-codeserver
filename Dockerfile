@@ -27,6 +27,7 @@ RUN \
     /config/* \
     /tmp/* \
     /var/lib/apt/lists/* \
-    /var/tmp/*
+    /var/tmp/* && \
+  chmod 666 /var/run/docker.sock
 EXPOSE 8443
 VOLUME ["/config"]
