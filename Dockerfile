@@ -28,7 +28,6 @@ RUN \
     /tmp/* \
     /var/lib/apt/lists/* \
     /var/tmp/* && \
-  chmod 666 /var/run/docker.sock && \
   usermod -aG docker abc 2>/dev/null && \
   usermod -aG sudo abc 2>/dev/null
 EXPOSE 8443
