@@ -7,7 +7,12 @@ docker codeserver with docker-cli and vim
 
 Access the webui at `http://<your-ip>:8443`.
 For github integration, drop your ssh key in to `/config/.ssh`.
-Then open a terminal from the top menu and set your github username and email via the following commands
+
+### Setup differences with basic linuxserver/code-server image
+
+- use PGID & PUID 0
+- map volume /var/run/docker.sock:/var/run/docker.sock
+- map your dockerfiles as a volume
 
 ```bash
 git config --global user.name "username"
@@ -32,8 +37,8 @@ services:
     image: lscr.io/linuxserver/code-server:latest
     container_name: code-server
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=0
+      - PGID=0
       - TZ=Etc/UTC
       - PASSWORD=password #optional
       - HASHED_PASSWORD= #optional
@@ -43,6 +48,9 @@ services:
       - DEFAULT_WORKSPACE=/config/workspace #optional
     volumes:
       - /path/to/appdata/config:/config
+      - /path/to/workspace:/workspace
+      - /path/to/dockerfiles:/workspace/docker
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 8443:8443
     restart: unless-stopped
