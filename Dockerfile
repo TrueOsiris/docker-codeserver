@@ -21,7 +21,7 @@ RUN \
     $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null && \
   apt-get update && \
   apt-get install -y \
-    docker-ce-cli && \
+    docker-ce-cli 2>&1 && \
   apt-get clean && \
   rm -rf \
     /config/* \
