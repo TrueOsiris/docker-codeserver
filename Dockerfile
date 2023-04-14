@@ -21,7 +21,9 @@ RUN \
     $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list 2>&1 && \
   apt-get update && \
   apt-get install -y \
-    docker-ce-cli && \
+    docker-ce-cli \
+    python3-pip && \
+  apt-get upgrade -y && \
   apt-get clean && \
   rm -rf \
     /config/* \
