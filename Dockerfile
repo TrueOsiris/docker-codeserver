@@ -27,8 +27,8 @@ RUN apt-get clean && \
     /config/* \
     /tmp/* \
     /var/lib/apt/lists/* \
-    /var/tmp/* && \
-  usermod -aG docker abc 2>/dev/null && \
-  usermod -aG sudo abc 2>/dev/null
+    /var/tmp/* 
+RUN usermod -aG docker abc 2>&1 && \
+  usermod -aG sudo abc 2>&1
 EXPOSE 8443
 VOLUME ["/config"]
