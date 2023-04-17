@@ -10,3 +10,4 @@ sphinxcontrib-nwdiag
 sphinxcontrib-websupport 
 sphinxjp.themes.basicstrap 
 recommonmark
+restview
