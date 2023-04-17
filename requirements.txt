@@ -11,3 +11,4 @@ sphinxcontrib-websupport
 sphinxjp.themes.basicstrap 
 recommonmark
 restview
+myst-parser
