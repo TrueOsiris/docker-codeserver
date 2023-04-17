@@ -1,0 +1,12 @@
+f5-sphinx-theme 
+Sphinx 
+sphinx-autobuild 
+sphinx-rtd-theme 
+sphinxcontrib-addmetahtml 
+sphinxcontrib-blockdiag 
+sphinxcontrib-googleanalytics 
+sphinxcontrib-images 
+sphinxcontrib-nwdiag 
+sphinxcontrib-websupport 
+sphinxjp.themes.basicstrap 
+recommonmark

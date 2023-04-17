@@ -6,6 +6,7 @@ LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DA
 LABEL maintainer="tim@chaubet.be"
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV HOME="/config"
+COPY ./requirements.txt requirements.txt
 RUN \
   echo "**** install runtime dependencies ****" && \
   apt-get update && \
@@ -32,5 +33,6 @@ RUN \
     /var/lib/apt/lists/* \
     /var/tmp/* && \ 
   usermod -aG sudo abc 2>&1
+RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 8443
 VOLUME ["/config"]
