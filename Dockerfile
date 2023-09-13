@@ -1,4 +1,4 @@
-FROM linuxserver/code-server:latest
+FROM linuxserver/code-server:4.16.1
 ARG BUILD_DATE
 ARG VERSION
 ARG CODE_RELEASE
