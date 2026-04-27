@@ -53,7 +53,7 @@ networks:
       
 services:
   codeserver:
-    image: ghcr.io/trueosiris/docker-codeserver:latest
+    image: ghcr.io/trueosiris/codeserver:latest
     environment:
       PUID: 0
       PGID: 0
@@ -100,9 +100,9 @@ git config --global user.name "username"
 git config --global user.email "email address"
 ```
 
-### 3.3. code-marketplace
+### 3.3. code-marketplace 
 
-If you want to run your own limited extension library, use this and replace the EXTENSIONS_GALLERY env var.
+Optional: If you want to run your own limited extension library, use this and replace the EXTENSIONS_GALLERY env var.
 ``` yaml
   codemarketplace:
     image: ghcr.io/coder/code-marketplace:v2.4.1
@@ -126,8 +126,6 @@ If you want to run your own limited extension library, use this and replace the 
       retries: 5
       start_period: 5s
 ```
-
-
 
 ## 4. Parameters
 
