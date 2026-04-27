@@ -53,7 +53,7 @@ networks:
       
 services:
   codeserver:
-    image: ghcr.io/trueosiris/codeserver:latest
+    image: ghcr.io/trueosiris/docker-codeserver:latest
     environment:
       PUID: 0
       PGID: 0
