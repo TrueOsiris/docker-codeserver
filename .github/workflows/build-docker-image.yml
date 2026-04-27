@@ -1,19 +1,20 @@
 # File: .github/workflows/build-docker-image.yml
 # Author: Tim Chaubet
 
-name: Master Build and Push
+name: Build and Push
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Daily build
+    - cron: '0 0 * * *'
   push:
     branches:
-      - main # Build on any change to master
-  workflow_dispatch: # Manual trigger
+      - main
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REPO_FULL: ${{ github.repository }}
+  REPO_SHORT: ${{ github.repository_owner }}/codeserver
 
 jobs:
   build-and-push:
@@ -23,28 +24,33 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout Master Repo
+      - name: Checkout Repo
         uses: actions/checkout@v4
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.REGISTRY }}/${{ env.REPO_FULL }}
+            ${{ env.REGISTRY }}/${{ env.REPO_SHORT }}
           tags: |
             type=raw,value=latest
             type=sha,format=short
 
       - name: Update README Image Reference
         run: |
+          # Grabs the first tag (REPO_FULL) to update the documentation
           PRIMARY_TAG="${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
-          # Specifically targeting the TrueOsiris registry path
+          
+          # Replaces the old registry link with the newly built tag
           sed -i "s|image: ghcr.io/trueosiris/codeserver:latest|image: ${PRIMARY_TAG}|g" README.md
+          
           git config --global user.name "Tim Chaubet"
           git config --global user.email "action@github.com"
           git add README.md
           if ! git diff --cached --exit-code; then
-            git commit -m "docs: update master image reference to ${PRIMARY_TAG}"
+            git commit -m "docs: update image reference to ${PRIMARY_TAG}"
             git push origin main
           fi
 
@@ -63,8 +69,7 @@ jobs:
         with:
           context: .
           push: true
-          # This ensures that even if the linuxserver base image updated, 
-          # we pull the freshest layers before building.
+          # Pull forces a check for the latest linuxserver base image
           pull: true 
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
