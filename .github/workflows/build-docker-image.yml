@@ -1,39 +1,30 @@
-# File: .github/workflows/sync-and-rebuild.yml
+# File: .github/workflows/build-docker-image.yml
 # Author: Tim Chaubet
 
-name: Sync, Build, and Update
+name: Master Build and Push
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # Daily build
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - main # Build on any change to master
+  workflow_dispatch: # Manual trigger
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/codeserver
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  sync-and-build:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
 
     steps:
-      - name: Checkout your repo
-        uses: actions/checkout@v4 # v4 is current, the warning will vanish as GitHub updates runners
-
-      - name: Merge Upstream Changes
-        run: |
-          git config --global user.name "Tim Chaubet"
-          git config --global user.email "action@github.com"
-          git remote add upstream https://github.com/TrueOsiris/docker-codeserver.git
-          git fetch upstream main
-          git merge upstream/main --strategy-option theirs -m "Merge upstream updates" || echo "No changes"
-          rm -f .github/workflows/build-docker-image.yml
+      - name: Checkout Master Repo
+        uses: actions/checkout@v4
 
       - name: Extract Docker metadata
         id: meta
@@ -47,10 +38,14 @@ jobs:
       - name: Update README Image Reference
         run: |
           PRIMARY_TAG="${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
-          sed -i "s|image: ghcr.io/.*codeserver:latest|image: ${PRIMARY_TAG}|g" README.md
+          # Specifically targeting the TrueOsiris registry path
+          sed -i "s|image: ghcr.io/trueosiris/codeserver:latest|image: ${PRIMARY_TAG}|g" README.md
+          git config --global user.name "Tim Chaubet"
+          git config --global user.email "action@github.com"
           git add README.md
           if ! git diff --cached --exit-code; then
-            git commit -m "docs: update README image to ${PRIMARY_TAG}"
+            git commit -m "docs: update master image reference to ${PRIMARY_TAG}"
+            git push origin main
           fi
 
       - name: Log in to GHCR
@@ -68,11 +63,10 @@ jobs:
         with:
           context: .
           push: true
+          # This ensures that even if the linuxserver base image updated, 
+          # we pull the freshest layers before building.
+          pull: true 
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Standard Push
-        run: |
-          git push origin main
