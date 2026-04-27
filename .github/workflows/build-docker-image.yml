@@ -1,55 +1,57 @@
-name: Daily build (latest + version)
+# File: .github/workflows/sync-and-rebuild.yml
+# Author: Tim Chaubet
+
+name: Sync, Build, and Update
 
 on:
   schedule:
-    - cron: "0 5 * * *"
-  workflow_dispatch: {}
-
-permissions:
-  contents: read
-  packages: write
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 env:
-  IMAGE_NAME: codeserver
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/codeserver
 
 jobs:
-  build:
-    name: Build and push images
+  sync-and-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout your repo
+        uses: actions/checkout@v4 # v4 is current, the warning will vanish as GitHub updates runners
 
-      - name: Compute image repo (lowercase owner) and version tag
-        id: vars
-        shell: bash
+      - name: Merge Upstream Changes
         run: |
-          set -euo pipefail
+          git config --global user.name "Tim Chaubet"
+          git config --global user.email "action@github.com"
+          git remote add upstream https://github.com/TrueOsiris/docker-codeserver.git
+          git fetch upstream main
+          git merge upstream/main --strategy-option theirs -m "Merge upstream updates" || echo "No changes"
+          rm -f .github/workflows/build-docker-image.yml
 
-          OWNER_LOWER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
-          IMAGE_REPO="${REGISTRY}/${OWNER_LOWER}/${IMAGE_NAME}"
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
 
-          # LinuxServer publishes a GitHub release tag like: "4.109.2-ls317"
-          # Strip "-ls###" suffix -> "4.109.2"
-          TAG="$(curl -fsSL https://api.github.com/repos/linuxserver/docker-code-server/releases/latest | jq -r .tag_name)"
-          VER="${TAG%%-ls*}"
-
-          echo "Owner (lower): ${OWNER_LOWER}"
-          echo "Image repo: ${IMAGE_REPO}"
-          echo "LinuxServer release tag: ${TAG}"
-          echo "Derived code-server version: ${VER}"
-
-          echo "owner_lower=${OWNER_LOWER}" >> "$GITHUB_OUTPUT"
-          echo "image_repo=${IMAGE_REPO}" >> "$GITHUB_OUTPUT"
-          echo "version=${VER}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Update README Image Reference
+        run: |
+          PRIMARY_TAG="${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
+          sed -i "s|image: ghcr.io/.*codeserver:latest|image: ${PRIMARY_TAG}|g" README.md
+          git add README.md
+          if ! git diff --cached --exit-code; then
+            git commit -m "docs: update README image to ${PRIMARY_TAG}"
+          fi
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -58,30 +60,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push :latest (base = linuxserver/code-server:latest)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: |
-            ${{ steps.vars.outputs.image_repo }}:latest
-          build-args: |
-            LS_TAG=latest
-            BUILD_DATE=${{ github.run_id }}
-            VERSION=latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build & push :${{ steps.vars.outputs.version }} (base = linuxserver/code-server:version-<ver>)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ steps.vars.outputs.image_repo }}:${{ steps.vars.outputs.version }}
-          build-args: |
-            LS_TAG=version-${{ steps.vars.outputs.version }}
-            BUILD_DATE=${{ github.run_id }}
-            VERSION=${{ steps.vars.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Standard Push
+        run: |
+          git push origin main
